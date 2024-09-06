@@ -1,1 +1,1 @@
-# dotty-scraper-service
+# linkedin-scraper-service

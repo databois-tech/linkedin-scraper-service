@@ -21,7 +21,7 @@ app.add_middleware(
 )
 @app.get("/info")
 def root():
-    return {"service": "Dotty Scraper micro service",
+    return {"service": "Dotty scraper micro service",
             "version": "0.1"}
 
 app.include_router(user_posts.router)

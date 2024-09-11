@@ -19,7 +19,7 @@ app.add_middleware(
     allow_methods=["*"],  # Or specify the allowed methods, e.g., ["GET", "POST"]
     allow_headers=["*"],  # Or specify the allowed headers
 )
-@app.get("/info")
+@app.get("/fetch-info")
 def root():
     return {"service": "Dotty scraper micro service",
             "version": "0.1"}

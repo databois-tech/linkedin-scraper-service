@@ -9,7 +9,7 @@ class Profile_url_data(BaseModel):
 
 
 router = APIRouter(
-    prefix= "/scraper-api/v1",
+    prefix= "/scraper-api-linkedin/v1",
     tags = ["LinkedinDataFetch"],
     responses= {404 : {"description" : "Path Not found"}},
 )

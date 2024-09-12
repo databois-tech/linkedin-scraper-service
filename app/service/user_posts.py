@@ -1,7 +1,10 @@
 import requests, re, json, urllib.parse
 from ..util.linkedin_username_extractor import extract_linkedin_username
-
+from ..util.logger import logger
 # Helper function to convert timeline to minutes
+
+SERVICE_NAME = "*** LINKEDIN SCRAPER SERVICE ***"
+
 def get_minutes_from_timeline(timeline):
     value, unit = timeline.split()[:2]  # Get the number and the time unit
     num = int(value)
@@ -32,7 +35,7 @@ def clean_reaction_data(reaction_data):
 
 def fetch_profile_urn_number(profile_url, cookies, csrf):
     # profile_url = extract_linkedin_username(profile_url)
-    
+    logger.info(f"{SERVICE_NAME} fetching prfile urn for {profile_url}")
     url = f"https://www.linkedin.com/voyager/api/graphql?variables=(vanityName:{profile_url})&queryId=voyagerIdentityDashProfiles.4d9e161cdf3cf64b1c9a7a7c1fc94cff"
     
     payload = {}
@@ -54,6 +57,7 @@ def fetch_profile_urn_number(profile_url, cookies, csrf):
 
 
 def parse_interactive_data(json_data, json_response):
+    logger.info(f"{SERVICE_NAME} parsing interactive data")
     original_post_image_url = ""
     progressive_stream_url = ""
     source_profile_image_url = ""
@@ -80,6 +84,7 @@ def parse_interactive_data(json_data, json_response):
     return original_post_image_url, progressive_stream_url, source_profile_image_url
 
 def parse_source_account_info(json_data):
+    logger.info(f"{SERVICE_NAME} parsing source account info")
     if "actor" in json_data.keys():
         description_text = json_data["actor"]["description"]["accessibilityText"]
         source_account_name = json_data["actor"]["name"]["text"]
@@ -101,7 +106,7 @@ def parse_pagination_token(json_response):
 
 
 def fetch_posts(profile_urn, cookie, csrf, start_page, pagination_token):
-    
+    logger.info(f"{SERVICE_NAME} fetching posts")
     profile_urn = urllib.parse.quote(profile_urn, safe='')
 
     if start_page == "0":
@@ -153,7 +158,6 @@ def fetch_posts(profile_urn, cookie, csrf, start_page, pagination_token):
         for data in json_response:
             # print(data)
             if "metadata" in data.keys() and (data["metadata"]["backendUrn"] == individual_reaction_data["urn"] or data["metadata"]["shareUrn"] == individual_reaction_data["predash_entity_urn"] ):
-                print(individual_reaction_data["predash_entity_urn"])
                 commentary_text = data["commentary"]["text"]["text"]
                 individual_reaction_data["author_text"] = commentary_text
                 original_post_image_url, progressive_stream_url, source_profile_image_url = parse_interactive_data(data, json_response)
@@ -170,7 +174,6 @@ def fetch_posts(profile_urn, cookie, csrf, start_page, pagination_token):
     # Assuming aggregated_reaction_data is your list of dictionaries
     filtered_data = [item for item in aggregated_reaction_data if 'author_text' in item]
     # Now return the filtered data
-    print(filtered_data)
     return filtered_data
 
 
@@ -180,9 +183,6 @@ def driver_function(data, cookie):
     linkedinUrl = data.linkedinUrl
     cookie = cookie
     csrf = data.csrf
-
-
-    
     profileUrn = fetch_profile_urn_number(linkedinUrl, f'''{cookie}''', csrf)
     return fetch_posts(profileUrn, f'''{cookie}''', csrf, '0' , "")
 

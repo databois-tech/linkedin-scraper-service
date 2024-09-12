@@ -24,7 +24,7 @@ def root():
     return {"service": "Dotty scraper micro service",
             "version": "0.1"}
 
-app.include_router(user_posts.router)
+app.include_router(user_posts.router,  prefix="/linkedin-scraper")
 
 
 @app.exception_handler(RequestValidationError)

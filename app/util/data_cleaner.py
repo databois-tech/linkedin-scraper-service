@@ -72,6 +72,7 @@ def parse_interactive_data(json_data, json_response):
 
 
 def data_filler(response_text):
+    print(response_text)
     json_response = json.loads(response_text)["included"]
     # pagination_token = parse_pagination_token(json.loads(response_text))
     reaction_data = []
@@ -88,12 +89,13 @@ def data_filler(response_text):
     print(len(reaction_data))
     for reaction_count in reaction_data:
         aggregated_reaction_data.append({
-            "num_likes" : reaction_count["numLikes"],
+            "total_engagement": reaction_count.get("numLikes", 0) + reaction_count.get("numComments", 0) + reaction_count.get("numShares", 0),
+            "num_likes" : reaction_count.get("numLikes", 0),
             "urn": reaction_count["urn"],
             "predash_entity_urn" : reaction_count["preDashEntityUrn"].split("urn:li:fs_socialActivityCounts:")[1],
-            "num_comments": reaction_count["numComments"],
+            "num_comments": reaction_count.get("numComments", 0),
             "like_types": clean_reaction_data(reaction_count["reactionTypeCounts"]),
-            "num_shares": reaction_count["numShares"]
+            "num_shares": reaction_count.get("numShares", 0)
         })
     print(aggregated_reaction_data)
     for individual_reaction_data in aggregated_reaction_data[1:]:

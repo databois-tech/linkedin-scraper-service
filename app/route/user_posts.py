@@ -20,7 +20,7 @@ router = APIRouter(
 )
 
 
-@router.post("/fetch-posts")
+@router.post("/fetch-list-posts")
 def fetch_top_activities(data: Profile_url_data):
     result = user_posts.driver_function(data)
     return result
@@ -31,7 +31,7 @@ def fetch_popular_posts(data: Search_query):
     return result
 
 
-@router.post("/login-automate-internal")
-def perform_automated_login(data: Linkedin_profile_creds):
-    result = login_module.automated_login_driver(data)
+@router.get("/login-automate-internal")
+def perform_automated_login():
+    result = login_module.automated_login_driver()
     return result

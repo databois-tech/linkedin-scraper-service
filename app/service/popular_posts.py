@@ -4,6 +4,43 @@ from ..util.random_x_li_track import get_random_x_li_track
 import concurrent.futures
 
 
+def fetch_data_updated(session, csrf):
+    session.cookies.set("li_at", "AQEDAVJmCCcDOSnwAAABks9c0mkAAAGXkw_gBlYAuu3iAG0_tHtcXO0KkUVrSrnEibv50intDIiJckzoGcOBUS4O7UR4amVs5tQrEy3Y6MWSbR7eR0sRnMirahPZvGLzfHOb-m71-x3AeGWo7jpqlcx9")
+
+    url = "https://www.linkedin.com/voyager/api/graphql?includeWebMetadata=true&variables=(start:0,origin:GLOBAL_SEARCH_HEADER,query:(keywords:air%20india,flagshipSearchIntent:SEARCH_SRP,queryParameters:List((key:resultType,value:List(ALL))),includeFiltersInResponse:false),count:3)&queryId=voyagerSearchDashClusters.52fec77d08aa4598c8a056ca6bce6c11"
+    payload = {}
+    headers = {
+        'Host': 'www.linkedin.com',
+        'Sec-Ch-Ua': '"Not;A=Brand";v="24", "Chromium";v="128"',
+        'X-Li-Lang': 'en_US',
+        'Accept-Language': 'en-GB,en;q=0.9',
+        'Sec-Ch-Ua-Mobile': '?0',
+        'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/128.0.6613.120 Safari/537.36',
+        'Accept': 'application/vnd.linkedin.normalized+json+2.1',
+        'Csrf-Token': csrf.replace('"', ''),
+        'X-Li-Track': get_random_x_li_track(),
+        'X-Restli-Protocol-Version': '2.0.0',
+        'X-Li-Pem-Metadata': 'Voyager - Search Results Page=search-results',
+        'Sec-Ch-Ua-Platform': '"Linux"',
+        'Sec-Fetch-Site': 'same-origin',
+        'Sec-Fetch-Mode': 'cors',
+        'Sec-Fetch-Dest': 'empty',
+        'Referer': 'https://www.linkedin.com/feed/',
+        'Accept-Encoding': 'gzip, deflate, br',
+        'Priority': 'u=1, i'
+    }
+
+    response = session.get(url, headers=headers)
+
+    # Process the response
+    print(response.text)
+    scraper_result = data_filler(response_text=response.text)
+    
+    # Return the result (an array)
+    return scraper_result
+
+
+
 def fetch_data(start_index, search_query, csrf, session):
     # url = f"https://www.linkedin.com/voyager/api/graphql?variables=(start:{start_index},origin:SWITCH_SEARCH_VERTICAL,query:(keywords:{search_query},flagshipSearchIntent:SEARCH_SRP,queryParameters:List((key:resultType,value:List(CONTENT))),includeFiltersInResponse:false),count:3)&queryId=voyagerSearchDashClusters.8832876bc08b96972d2c68331a27ba76"
     print("HERE2", search_query)
@@ -88,4 +125,4 @@ def driver_function(data):
     search_query = search_query.replace(" ", "%20")
     print("HERE1", search_query)
     session, csrf = fetch_random_session()
-    return fetch_all_data_multithreaded(search_query, csrf, session)
+    return fetch_data_updated(session, csrf)

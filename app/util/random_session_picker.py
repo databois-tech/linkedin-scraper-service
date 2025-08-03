@@ -15,13 +15,16 @@ def fetch_random_session():
         raise Exception("No cookie data found in the database")
 
     # Extract the cookies from the randomly chosen document
-    session_cookies = db_data["session_cookies"]
-    csrf = db_data["csrf_val"]
+    csrf = db_data["JSESSIONID"]
     # Create a new requests.Session
     session = requests.Session()
+    print(db_data)
+    db_data.pop('_id', None)
 
-    # Set each cookie in the session
-    for cookie in session_cookies:
-        session.cookies.set(cookie['name'], cookie['value'], domain=cookie['domain'], path=cookie['path'])
+    # Create a session and set cookies
+    session = requests.Session()
+    for key, value in db_data.items():
+        session.cookies.set(key, value)
+        # session.cookies.set(cookie['name'], cookie['value'], domain=cookie['domain'], path=cookie['path'])
 
     return session, csrf

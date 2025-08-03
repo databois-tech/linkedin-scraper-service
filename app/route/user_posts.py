@@ -1,6 +1,6 @@
 from fastapi import APIRouter, Query
 from pydantic import BaseModel
-from ..service import user_posts, login_module, popular_posts
+from ..service import user_posts, login_module, popular_posts, job_posts
 
 class Profile_url_data(BaseModel):
     linkedin_url: str
@@ -30,6 +30,10 @@ def fetch_popular_posts(data: Search_query):
     result = popular_posts.driver_function(data)
     return result
 
+@router.post("/fetch-job-posts")
+def fetch_job_posts(data: Search_query):
+    result = job_posts.driver_function(data)
+    return result
 
 @router.get("/login-automate-internal")
 def perform_automated_login():

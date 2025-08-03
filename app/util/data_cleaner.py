@@ -72,8 +72,9 @@ def parse_interactive_data(json_data, json_response):
 
 
 def data_filler(response_text):
-    print(response_text)
+    # print(response_text)
     json_response = json.loads(response_text)["included"]
+    print(json_response)
     # pagination_token = parse_pagination_token(json.loads(response_text))
     reaction_data = []
     aggregated_reaction_data = [

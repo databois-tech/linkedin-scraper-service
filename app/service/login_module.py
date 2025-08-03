@@ -151,7 +151,7 @@ async def run_login_automation(email_id):
 def automated_login_driver():
     creds_collection = DB_INSTANCE["source_creds"]
     creds_list = list(creds_collection.find({}))
-    for cred_data in creds_list[0:1]:
+    for cred_data in creds_list[1:2]:
         username = cred_data["email"]
         password = cred_data["password"]
         logger.info(f"{SERVICE_NAME} ")

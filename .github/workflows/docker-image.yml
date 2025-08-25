@@ -27,4 +27,4 @@ jobs:
         with:
           context: .
           push: true
-          tags: dottytechhq/dotty-scraper-service:latest
+          tags: prithidev/databois_xyz:latest

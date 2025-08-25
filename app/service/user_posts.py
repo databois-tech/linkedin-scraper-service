@@ -1,7 +1,12 @@
 import requests, re, json, urllib.parse
 from ..util.linkedin_username_extractor import extract_linkedin_username
 from ..util.logger import logger
+from ..util.data_cleaner import data_filler
 # Helper function to convert timeline to minutes
+from ..config.mongo_config import connect_db
+from ..util.random_session_picker import fetch_random_session
+
+MONGO_CLIENT = connect_db()
 
 SERVICE_NAME = "*** LINKEDIN SCRAPER SERVICE ***"
 
@@ -33,8 +38,10 @@ def clean_reaction_data(reaction_data):
 
     return cleaned_data
 
-def fetch_profile_urn_number(profile_url, cookies, csrf):
+def fetch_profile_urn_number(session, profile_url, csrf):
     # profile_url = extract_linkedin_username(profile_url)
+    print(session)
+    print(csrf)
     logger.info(f"{SERVICE_NAME} fetching prfile urn for {profile_url}")
     url = f"https://www.linkedin.com/voyager/api/graphql?variables=(vanityName:{profile_url})&queryId=voyagerIdentityDashProfiles.4d9e161cdf3cf64b1c9a7a7c1fc94cff"
     
@@ -42,15 +49,15 @@ def fetch_profile_urn_number(profile_url, cookies, csrf):
     headers = {
         'accept': 'application/vnd.linkedin.normalized+json+2.1',
         'accept-language': 'en-GB,en-IN;q=0.9,en-US;q=0.8,en;q=0.7,bn;q=0.6',
-        'cookie': cookies,
+        # 'cookie': cookies,
         'csrf-token': csrf.replace('"', ''),
         'user-agent': 'Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/126.0.0.0 Safari/537.36',  
     }
     
     # print(cookies)
 
-    response = requests.request("GET", url, headers=headers, data=payload)
-    # print("HEEEREEE1",response.text)
+    response = session.get(url, headers=headers, data=payload)
+    print("HEEEREEE1",response.text)
     jsonResponse = json.loads(response.text)
     # print("HEEEREEE",jsonResponse)
     return jsonResponse["data"]["data"]["identityDashProfilesByMemberIdentity"]["*elements"][0]
@@ -105,7 +112,7 @@ def parse_pagination_token(json_response):
 
 
 
-def fetch_posts(profile_urn, cookie, csrf, start_page, pagination_token):
+def fetch_posts(session, profile_urn, csrf, start_page, pagination_token):
     logger.info(f"{SERVICE_NAME} fetching posts")
     profile_urn = urllib.parse.quote(profile_urn, safe='')
 
@@ -119,7 +126,7 @@ def fetch_posts(profile_urn, cookie, csrf, start_page, pagination_token):
     headers = {
         'accept': 'application/vnd.linkedin.normalized+json+2.1',
         'accept-language': 'en-GB,en-IN;q=0.9,en-US;q=0.8,en;q=0.7,bn;q=0.6',
-        'cookie': cookie,
+        # 'cookie': cookie,
         'csrf-token': csrf.replace('"', ''),
         'sec-fetch-mode': 'cors',
         'sec-fetch-site': 'same-origin',
@@ -127,64 +134,68 @@ def fetch_posts(profile_urn, cookie, csrf, start_page, pagination_token):
         
     }
 
-    response = requests.request("GET", url, headers=headers, data=payload)
+    response = session.get(url, headers=headers, data=payload)
+    return data_filler(response_text = response.text)
     # print(response.text)
-    json_response = json.loads(response.text)["included"]
-    pagination_token = parse_pagination_token(json.loads(response.text))
-    reaction_data = []
-    aggregated_reaction_data = [{
-        "pagination_token": pagination_token
-    }
-    ]
-    # print(json_response)
-    for data in json_response:
-        if "numLikes" in data.keys():
-            reaction_data.append(data)
-        # print("REEAAACC", reaction_data)
-    # print(len(reaction_data))
-    for reaction_count in reaction_data:
-        aggregated_reaction_data.append({
-            "num_likes" : reaction_count["numLikes"],
-            "urn": reaction_count["urn"],
-            "predash_entity_urn" : reaction_count["preDashEntityUrn"].split("urn:li:fs_socialActivityCounts:")[1],
-            "num_comments": reaction_count["numComments"],
-            "like_types": clean_reaction_data(reaction_count["reactionTypeCounts"]),
-            "num_shares": reaction_count["numShares"]
-        })
-    # print(aggregated_reaction_data)
-    for individual_reaction_data in aggregated_reaction_data[1:]:
-        # print("INDIVIDUAL",individual_reaction_data)
+    # json_response = json.loads(response.text)["included"]
+    # pagination_token = parse_pagination_token(json.loads(response.text))
+    # reaction_data = []
+    # aggregated_reaction_data = [{
+    #     "pagination_token": pagination_token
+    # }
+    # ]
+    # # print(json_response)
+    # for data in json_response:
+    #     if "numLikes" in data.keys():
+    #         reaction_data.append(data)
+    #     # print("REEAAACC", reaction_data)
+    # # print(len(reaction_data))
+    # for reaction_count in reaction_data:
+    #     aggregated_reaction_data.append({
+    #         "num_likes" : reaction_count["numLikes"],
+    #         "urn": reaction_count["urn"],
+    #         "predash_entity_urn" : reaction_count["preDashEntityUrn"].split("urn:li:fs_socialActivityCounts:")[1],
+    #         "num_comments": reaction_count["numComments"],
+    #         "like_types": clean_reaction_data(reaction_count["reactionTypeCounts"]),
+    #         "num_shares": reaction_count["numShares"]
+    #     })
+    # # print(aggregated_reaction_data)
+    # for individual_reaction_data in aggregated_reaction_data[1:]:
+    #     # print("INDIVIDUAL",individual_reaction_data)
         
-        for data in json_response:
-            # print(data)
-            if "metadata" in data.keys() and (data["metadata"]["backendUrn"] == individual_reaction_data["urn"] or data["metadata"]["shareUrn"] == individual_reaction_data["predash_entity_urn"] ):
-                commentary_text = data["commentary"]["text"]["text"]
-                individual_reaction_data["author_text"] = commentary_text
-                original_post_image_url, progressive_stream_url, source_profile_image_url = parse_interactive_data(data, json_response)
-                description_text, source_account_name, post_upload_timeline, source_account_url = parse_source_account_info(data)
-                individual_reaction_data["description_text"] = description_text
-                individual_reaction_data["source_account_name"] = source_account_name
-                individual_reaction_data["post_upload_timeline"] = post_upload_timeline
-                individual_reaction_data["source_account_url"] = source_account_url
-                individual_reaction_data["original_post_image_url"] = original_post_image_url
-                individual_reaction_data["progressive_stream_url"] = progressive_stream_url
-                individual_reaction_data["source_profile_image_url"] = source_profile_image_url
-                individual_reaction_data["post_share_url"] = data["socialContent"]["shareUrl"]
+    #     for data in json_response:
+    #         # print(data)
+    #         if "metadata" in data.keys() and (data["metadata"]["backendUrn"] == individual_reaction_data["urn"] or data["metadata"]["shareUrn"] == individual_reaction_data["predash_entity_urn"] ):
+    #             commentary_text = data["commentary"]["text"]["text"]
+    #             individual_reaction_data["author_text"] = commentary_text
+    #             original_post_image_url, progressive_stream_url, source_profile_image_url = parse_interactive_data(data, json_response)
+    #             description_text, source_account_name, post_upload_timeline, source_account_url = parse_source_account_info(data)
+    #             individual_reaction_data["description_text"] = description_text
+    #             individual_reaction_data["source_account_name"] = source_account_name
+    #             individual_reaction_data["post_upload_timeline"] = post_upload_timeline
+    #             individual_reaction_data["source_account_url"] = source_account_url
+    #             individual_reaction_data["original_post_image_url"] = original_post_image_url
+    #             individual_reaction_data["progressive_stream_url"] = progressive_stream_url
+    #             individual_reaction_data["source_profile_image_url"] = source_profile_image_url
+    #             individual_reaction_data["post_share_url"] = data["socialContent"]["shareUrl"]
     
-    # Assuming aggregated_reaction_data is your list of dictionaries
-    filtered_data = [item for item in aggregated_reaction_data if 'author_text' in item]
-    # Now return the filtered data
-    return filtered_data
+    # # Assuming aggregated_reaction_data is your list of dictionaries
+    # filtered_data = [item for item in aggregated_reaction_data if 'author_text' in item]
+    # # Now return the filtered data
+    # return filtered_data
 
 
 
 
-def driver_function(data, cookie):
-    linkedinUrl = data.linkedinUrl
-    cookie = cookie
-    csrf = data.csrf
-    profileUrn = fetch_profile_urn_number(linkedinUrl, f'''{cookie}''', csrf)
-    return fetch_posts(profileUrn, f'''{cookie}''', csrf, '0' , "")
+def driver_function(data):
+    linkedinUrl = data.linkedin_url
+    # cookie = cookie
+    # print(cookie)
+    # csrf = data.csrf
+
+    session, csrf = fetch_random_session()
+    profileUrn = fetch_profile_urn_number(session, linkedinUrl, csrf)
+    return fetch_posts(session, profileUrn, csrf, '0' , "")
 
 
 

@@ -35,7 +35,7 @@ def fetch_job_posts(data: Search_query):
     result = job_posts.driver_function(data)
     return result
 
-@router.get("/login-automate-internal")
-def perform_automated_login():
-    result = login_module.automated_login_driver()
-    return result
+# @router.get("/login-automate-internal")
+# def perform_automated_login():
+#     result = login_module.automated_login_driver()
+#     return result

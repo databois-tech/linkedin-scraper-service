@@ -1,4 +1,8 @@
 import json
+import urllib.parse
+
+
+
 
 def parse_pagination_token(json_response):
     metadata = json_response["data"]["data"]["feedDashProfileUpdatesByMemberShareFeed"]["metadata"]
@@ -122,3 +126,17 @@ def data_filler(response_text):
     filtered_data = [item for item in aggregated_reaction_data if 'author_text' in item]
     # Now return the filtered data
     return filtered_data
+
+
+
+def transform_urn(urn_string):
+    # Extract the ID (first part inside parentheses)
+    start = urn_string.find('(') + 1
+    end = urn_string.find(',')
+    job_id = urn_string[start:end]
+
+    # Reconstruct the new URN format
+    new_urn = f"urn:li:fsd_jobPosting:{job_id}"
+
+    # URL-encode it
+    return urllib.parse.quote(new_urn, safe='')
